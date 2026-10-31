@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "context": "review-evidence",
+  "ownerLogin": "RuzniSadiq",
+  "attestationVendors": [
+    "grok",
+    "codex",
+    "claude",
+    "devin",
+    "human"
+  ],
+  "identities": [
+    {
+      "login": "RuzniSadiq",
+      "appSlug": null,
+      "appId": null,
+      "vendor": "owner",
+      "roles": [
+        "author"
+      ]
+    }
+  ]
+}

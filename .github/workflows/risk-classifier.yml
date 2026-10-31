@@ -1,0 +1,60 @@
+name: risk-classifier
+
+# Law 7 Tier-C gate. Labels PRs touching money / auth / PII / security
+# boundaries / production data (`tier-c` + `risk:<category>`) and publishes the
+# `tier-c-gate` commit status on the PR head: red until the repo owner applies
+# `tier-c-approved` to the CURRENT head (any push strips that label).
+#
+# pull_request_target so it can write labels and statuses on fork PRs too. It
+# checks out the DEFAULT BRANCH only (trusted code) and never checks out, builds
+# or executes PR code; file names and patches are read via the API as data.
+#
+# Install ≠ protect: `tier-c-gate` must be added as a required status check on
+# the default branch by the owner, or a red status blocks nothing.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, labeled, unlabeled]
+
+permissions: {}
+
+concurrency:
+  group: risk-classifier-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      statuses: write
+    env:
+      # Owner login lives here (default-branch file), not in PR-controlled input.
+      OWNER_LOGIN: RuzniSadiq
+    steps:
+      - name: Checkout default branch (trusted classifier only)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: |
+            scripts/risk-classify.mjs
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Classify and publish tier-c-gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EVENT_ACTION: ${{ github.event.action }}
+        run: |
+          node scripts/risk-classify.mjs --repo "$REPO" --pr "$PR_NUMBER" \
+            --owner "$OWNER_LOGIN" --event-action "$EVENT_ACTION" \
+            --github-output "$GITHUB_OUTPUT"
