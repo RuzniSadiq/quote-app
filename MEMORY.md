@@ -60,3 +60,10 @@ _Last updated: 2026-10-31_
 
 - Repo adopted Gibson agent-memory conventions (AGENTS memory block + this file).
 - Pure memory commits skip the product green gate; dual-write is mandatory.
+
+## 2026-10-31 — lockfile-npm-version
+
+- **What happened:** `npm ci` failed in CI ("package.json and package-lock.json ... not in sync", missing `@emnapi/*`) on a lockfile written locally.
+- **Root cause:** local npm 11 (Node 24) resolves optional wasm deps differently from CI's npm 10 (Node 22).
+- **Fix / rule:** after any dependency change, run `npx -y npm@10 ci --dry-run`; if it fails, `npx -y npm@10 install` to resync, then confirm `npm ci --dry-run` still passes locally.
+- **Links:** PR #1
